@@ -119,7 +119,7 @@ void shake(sf::RenderWindow& window) {
 
 int ran(int a)
 {
-        srand(time(NULL));
+
         int b = (rand() % a) + 1;
 
         return b;
@@ -130,11 +130,11 @@ vector<string> random_slova(int q)
 {
         vector<string> result;
         srand(time(NULL));
-
         for (int i = 0; i < q; ++i)
         {
-                int a = rand() % (i+1);
+                int a = ran(30);
                 result.push_back(::slova[a]);
+                cout << ::slova[a] << endl;
         }
 
         return result;
@@ -211,9 +211,20 @@ public:
 
                 int d = static_cast<int>(c);
 
-                if ((d >= 65 && d <= 90) || (d >= 97 && d <= 122) || d == SPACE) {
+                bool isEnglishOrSpace = (d >= 65 && d <= 90) || (d >= 97 && d <= 122) || d == SPACE;
+
+                bool isSerbianLatin = (d == 269 || d == 268) || // č, Č
+                                      (d == 263 || d == 262) || // ć, Ć
+                                      (d == 273 || d == 272) || // đ, Đ
+                                      (d == 353 || d == 352) || // š, Š
+                                      (d == 382 || d == 381);   // ž, Ž
+
+                /*if ((d >= 65 && d <= 90) || (d >= 97 && d <= 122) || d == SPACE)*/
+                if (isEnglishOrSpace || isSerbianLatin){
+
                         if ((size.x - 10) - text.length() * 12 > 0) {
-                                text+=static_cast<char>(c);
+                                sf::String incomingCharacter(c);
+                                text += incomingCharacter.toAnsiString();
                         }
                         else {
 
@@ -248,7 +259,7 @@ public:
 
         bool isSelected() const {return selected;}
 
-
+        void setText(string _t) {text = _t;}
 
         void Draw(sf::RenderWindow& window) {
 
@@ -295,7 +306,7 @@ int main() {
 
 
         sf::Font font;
-        if (!font.openFromFile("../assets/bold.OTF")) cerr << "Error loading font." << endl;
+        if (!font.openFromFile("../assets/bold.ttf")) cerr << "Error loading font." << endl;
 
 
         // Sound ---------------------------------------------------------------------------------------------------------
@@ -308,6 +319,18 @@ int main() {
         /*blockSound.play();
         sf::sleep(sf::milliseconds(1));
         blockSound.stop();*/
+
+        // GAMESTATE 1 - RANDOM SLOVA ------------------------------------------------------------------------------------
+        vector<string> pogadjanje = random_slova(8);
+
+        vector<textBox> slBox;
+        for (int i = 0; i < 2; i++) {
+                for (int j = 0; j < 4; j++) {
+                        slBox.push_back(textBox({200 + j*80.f, 100 + i*100.f}, {40.f,40.f}, 1, true ));
+                        slBox[i*4+j].setText(pogadjanje[i*4+j]);
+                }
+        }
+
 
         while (window.isOpen()) {
                 while (auto event = window.pollEvent()) {
@@ -329,9 +352,9 @@ int main() {
         // GAMESTATE ETC -------------------------------------------------------------------------------------------------
                 if (::state == POGADJANJE)
                 {
-                        vector<string> pogadjanje = random_slova(8);
+
                         for (short i = 0; i < pogadjanje.size(); i++) {}
-                        ui(boxes, window, font);
+                        ui(slBox, window, font);
                 }
 
 

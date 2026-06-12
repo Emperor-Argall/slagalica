@@ -309,6 +309,7 @@ int main() {
         if (!font.openFromFile("../assets/bold.ttf")) cerr << "Error loading font." << endl;
 
 
+
         // Sound ---------------------------------------------------------------------------------------------------------
 
         sf::SoundBuffer blockBuffer;
@@ -323,13 +324,27 @@ int main() {
         // GAMESTATE 1 - RANDOM SLOVA ------------------------------------------------------------------------------------
         vector<string> pogadjanje = random_slova(8);
 
+        int amountOfSl{0};
+
         vector<textBox> slBox;
         for (int i = 0; i < 2; i++) {
                 for (int j = 0; j < 4; j++) {
                         slBox.push_back(textBox({200 + j*80.f, 100 + i*100.f}, {40.f,40.f}, 1, true ));
                         slBox[i*4+j].setText(pogadjanje[i*4+j]);
+                        ++amountOfSl;
                 }
         }
+
+        slBox.push_back(textBox({200, 300}, {70, 40}, 1, true ));
+        slBox[amountOfSl].setText("Igrac 1");
+        ++amountOfSl;
+        slBox.push_back(textBox({200, 400}, {70, 40}, 1, true ));
+        slBox[amountOfSl].setText("Igrac 2");
+        ++amountOfSl;
+
+
+        slBox.push_back(textBox({300, 300}, {150, 40}, 1 ));
+        slBox.push_back(textBox({300, 400}, {150, 40}, 1 ));
 
 
         while (window.isOpen()) {
@@ -338,7 +353,7 @@ int main() {
                                 window.close();
                         }
                         if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
-                                for (auto& box : boxes) {
+                                for (auto& box : slBox) {
                                         if (box.isSelected()) {
                                                 box.input(textEvent->unicode, window, blockSound);
                                         }

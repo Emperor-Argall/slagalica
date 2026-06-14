@@ -6,11 +6,18 @@
 #include <cmath>
 #include <vector>
 #include <fstream>
+#include <unordered_set>
+int result = -1;
+bool p1{false};
+bool p2{false};
+
+
+#include "cmake-build-debug/_deps/sfml-src/src/SFML/Window/InputImpl.hpp"
 
 int state{1};
 
 std::string slova[30] = {"a","b","v","g","d","dj","e","ž","z","i","j","k","l","lj","m","n","nj","o","p","r","s","t","ć","u","f","h","c","č","dž","š"};
-
+char letters[26] = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
 bool shaky{false};
 
 using namespace std;
@@ -132,14 +139,156 @@ vector<string> random_slova(int q)
         srand(time(NULL));
         for (int i = 0; i < q; ++i)
         {
-                int a = ran(30);
-                result.push_back(::slova[a]);
-                cout << ::slova[a] << endl;
+                int a = ran(25);
+                result.push_back(string(1, ::letters[a]));
+                //  cout << ::letters[a] << endl;
         }
 
         return result;
 
 }
+
+
+class button {
+private:
+        vec2 pos;
+        vec2 size;
+        bool visible;
+        bool selected{false};
+        string text;
+        int menu_loc{};
+        bool locked{false};
+
+        bool confirm{false};
+
+
+public:
+        button(vec2 _pos, vec2 _size, int _m) : pos(_pos), size(_size), menu_loc(_m) {this->visible = true;}
+        button(vec2 _pos, vec2 _size, int _m, bool display) : pos(_pos), size(_size), menu_loc(_m), locked(display) {this->visible = true;}
+
+        vec2 getPos() const { return pos; }
+        vec2 getSize() const { return size; }
+
+        void use() { if (/*::state == menu_loc*/ true) visible = true; }
+
+        void select(sf::RenderWindow& window) {
+                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                vec2 mouse{float(mousePos.x), float(mousePos.y)};
+                if (visible && !locked) {
+                        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+                                if ((mouse.x >= pos.x && mouse.x <= pos.x + size.x) && (mouse.y >= pos.y && mouse.y <= pos.y + size.y)) {
+                                        selected = true;
+                                }
+                                else {
+                                        selected = false;
+                                }
+
+                        }
+
+                }
+        }
+
+        void block(sf::RenderWindow& window, sf::Sound& sound) {
+
+
+                sound.play();
+
+                // popravka za audio driver
+                sf::Clock safetyTimeout;
+                while (sound.getStatus() != sf::Sound::Status::Playing && safetyTimeout.getElapsedTime().asMilliseconds() < 50) {
+                        while (auto event = window.pollEvent()) {
+                                // da se ne crashuje pod peer pressure
+                                if (event->is<sf::Event::Closed>()) {
+                                        window.close();
+                                        return;
+                                }
+                        }
+                }
+
+
+
+
+        }
+
+
+        void READY() {
+                if (selected && sf::priv::InputImpl::isKeyPressed(sf::Keyboard::Key::Space)) { confirm = true;}
+        }
+
+
+        /*void input(char32_t c, sf::RenderWindow& window, sf::Sound& sound) {
+                const int BACKSPACE{8};
+                const int SPACE{32};
+
+                int d = static_cast<int>(c);
+
+                bool isEnglishOrSpace = (d >= 65 && d <= 90) || (d >= 97 && d <= 122) || d == SPACE;
+
+                bool isSerbianLatin = (d == 269 || d == 268) || // č, Č
+                                      (d == 263 || d == 262) || // ć, Ć
+                                      (d == 273 || d == 272) || // đ, Đ
+                                      (d == 353 || d == 352) || // š, Š
+                                      (d == 382 || d == 381);   // ž, Ž
+
+                if ((d >= 65 && d <= 90) || (d >= 97 && d <= 122) || d == SPACE)
+                if (isEnglishOrSpace /*|| isSerbianLatin){
+
+                        if ((size.x - 10) - text.length() * 12 > 0) {
+                                sf::String incomingCharacter(c);
+                                text += incomingCharacter.toAnsiString();
+                        }
+                        else {
+
+                                // window.display();
+
+                                ::shaky = true;
+
+                                // block(window, sound);
+                        }
+
+                }
+                else if (d == BACKSPACE) {
+                        if (text.length() > 0) {text.pop_back();}
+                }
+
+                 // cout << text << "|\n" << std::flush;
+
+        }*/
+
+
+        bool isReady() const {return confirm;}
+
+
+        void displayText(sf::Font& font, unsigned int Fsize, sf::RenderWindow& window) {
+                sf::Text t(font);
+                t.setCharacterSize(Fsize);
+                t.setFillColor(sf::Color::Black);
+                t.setString(text);
+                t.setPosition({std::floor(pos.x + size.x/2 - Fsize/2 * text.length()/(1.8f)), std::floor(pos.y + size.y/2 - Fsize/4*3)});
+
+                window.draw(t);
+
+
+        }
+
+        bool isSelected() const {return selected;}
+
+        void setText(string _t) {text = _t;}
+
+        void Draw(sf::RenderWindow& window) {
+                float thickness{4.f};
+                sf::Color lightGray(50, 50, 50);
+                auto shape = createSquircle(pos, size, sf::Color::White);
+                auto outline = createSquircle(pos, {size.x + thickness, size.y + thickness}, lightGray);
+
+                if (selected) { window.draw(outline); }
+                window.draw(shape);
+
+
+        }
+
+
+};
 
 
 
@@ -202,6 +351,7 @@ public:
         }
 
 
+        string getText() const {return text;}
 
 
 
@@ -220,7 +370,7 @@ public:
                                       (d == 382 || d == 381);   // ž, Ž
 
                 /*if ((d >= 65 && d <= 90) || (d >= 97 && d <= 122) || d == SPACE)*/
-                if (isEnglishOrSpace || isSerbianLatin){
+                if (isEnglishOrSpace /*|| isSerbianLatin*/){
 
                         if ((size.x - 10) - text.length() * 12 > 0) {
                                 sf::String incomingCharacter(c);
@@ -262,10 +412,14 @@ public:
         void setText(string _t) {text = _t;}
 
         void Draw(sf::RenderWindow& window) {
-
+                float thickness{4.f};
+                sf::Color lightGray(50, 50, 50);
                 auto shape = createSquircle(pos, size, sf::Color::White);
+                auto outline = createSquircle(pos, {size.x + thickness, size.y + thickness}, lightGray);
 
+                if (selected) { window.draw(outline); }
                 window.draw(shape);
+
 
         }
 
@@ -281,7 +435,22 @@ void ui(vector<textBox>& boxes, sf::RenderWindow& window, sf::Font& font) {
         }
 }
 
+void ui(vector<button>& boxes, sf::RenderWindow& window, sf::Font& font) {
+        for (auto& box : boxes) {
+                box.use();
+                box.select(window);
+                box.Draw(window);
+                box.displayText(font, 18,window);
+        }
+}
 
+bool check_word(std::unordered_set<std::string> dictionary_set, string word_to_check) {
+        if (dictionary_set.count(word_to_check)) {
+                std::cout << "'" << word_to_check << "' is valid.\n";
+        } else {
+                std::cout << "'" << word_to_check << "' is incorrect.\n";
+        }
+}
 
 
 
@@ -291,6 +460,22 @@ int main() {
 
         sf::ContextSettings settings;
         settings.antiAliasingLevel = 8;
+
+        // RECNIK I PROVERAVANJE RECI
+
+        std::unordered_set<std::string> dictionary_set;
+        std::ifstream file("../assets/words_alpha.txt");
+        std::string word;
+
+        while (file >> word) {
+                dictionary_set.insert(word);
+        }
+
+        std::string word_to_check = "apple";
+
+
+
+
 
 
         sf::RenderWindow window(sf::VideoMode({640, 480}), "Service",sf::State::Windowed, settings);
@@ -330,7 +515,7 @@ int main() {
         for (int i = 0; i < 2; i++) {
                 for (int j = 0; j < 4; j++) {
                         slBox.push_back(textBox({200 + j*80.f, 100 + i*100.f}, {40.f,40.f}, 1, true ));
-                        slBox[i*4+j].setText(pogadjanje[i*4+j]);
+                        slBox[i*4+j].setText((pogadjanje[i*4+j]));
                         ++amountOfSl;
                 }
         }
@@ -345,6 +530,21 @@ int main() {
 
         slBox.push_back(textBox({300, 300}, {150, 40}, 1 ));
         slBox.push_back(textBox({300, 400}, {150, 40}, 1 ));
+
+        vector<button> buttons;
+        buttons.push_back(button({500, 300}, {50, 40}, 1 ));
+        buttons[0].setText("DONE");
+        buttons.push_back(button({500, 400}, {50, 40}, 1 ));
+        buttons[1].setText("DONE");
+
+
+        const int P1_WIN = 1;
+        const int P2_WIN = 2;
+        const int EQUAL = 3;
+
+        const int POGADJANJE_GOTOVO = 2;
+
+
 
 
         while (window.isOpen()) {
@@ -361,16 +561,62 @@ int main() {
 
                         }
                 }
-                window.clear(sf::Color::Black);
+
+                sf::Color semiTransparentGray(100, 100, 100, 128);
+
+                window.clear(semiTransparentGray);
 
                 const int POGADJANJE{1};
         // GAMESTATE ETC -------------------------------------------------------------------------------------------------
-                if (::state == POGADJANJE)
+
+                if (::state == POGADJANJE && (!buttons[0].isReady() || !buttons[1].isReady()))
                 {
 
                         for (short i = 0; i < pogadjanje.size(); i++) {}
                         ui(slBox, window, font);
+                        ui(buttons, window, font);
                 }
+                else if (::state == POGADJANJE && buttons[0].isReady() && buttons[1].isReady()) {
+                        ::p1 = check_word(dictionary_set ,slBox[amountOfSl + 1].getText());
+                        ::p2 = check_word(dictionary_set ,slBox[amountOfSl + 2].getText());
+                        string rec = slBox[amountOfSl + 1].getText();
+                        string rec2 = slBox[amountOfSl + 2].getText();
+                        if (::p1 && ::p2) {
+                                if (rec.length() > rec2.length()) {
+                                        ::result = P1_WIN;
+                                }
+                                else if (rec.length() < rec2.length()) {
+                                        ::result = P2_WIN;
+                                }
+                                else {
+                                        ::result = EQUAL;
+                                }
+                        }
+                        else if (!::p1 && ::p2) {
+                                ::result = P2_WIN;
+                        }
+                        else if (::p1 && !::p2) {
+                                ::result = P1_WIN;
+                        }
+                        else if (!::p1 && !::p2) {
+                                ::result = EQUAL;
+                        }
+                        ::state = POGADJANJE_GOTOVO;
+                }
+
+                else if (::state == POGADJANJE_GOTOVO) {
+                        if (::result == EQUAL) {
+                                cout << "equal";
+                        }
+                        else if (::result == P1_WIN) {
+                                cout << "p1_win";
+                        }
+                        else if (::result == P2_WIN) {
+                                cout << "p2_win";
+                        }
+                }
+
+
 
 
 

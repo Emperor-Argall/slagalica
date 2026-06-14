@@ -212,7 +212,7 @@ public:
 
 
         void READY() {
-                if (selected && sf::priv::InputImpl::isKeyPressed(sf::Keyboard::Key::Space)) { confirm = true;}
+                if (selected && sf::priv::InputImpl::isMouseButtonPressed(sf::Mouse::Button::Left)) { confirm = true;}
         }
 
 
@@ -278,11 +278,14 @@ public:
         void Draw(sf::RenderWindow& window) {
                 float thickness{4.f};
                 sf::Color lightGray(50, 50, 50);
+                sf::Color Gray(199, 199, 199);
                 auto shape = createSquircle(pos, size, sf::Color::White);
                 auto outline = createSquircle(pos, {size.x + thickness, size.y + thickness}, lightGray);
+                auto confirmed = createSquircle(pos, {size.x + thickness, size.y + thickness}, Gray);
 
                 if (selected) { window.draw(outline); }
                 window.draw(shape);
+                if (confirm) window.draw(confirmed);
 
 
         }
@@ -441,14 +444,17 @@ void ui(vector<button>& boxes, sf::RenderWindow& window, sf::Font& font) {
                 box.select(window);
                 box.Draw(window);
                 box.displayText(font, 18,window);
+                box.READY();
         }
 }
 
 bool check_word(std::unordered_set<std::string> dictionary_set, string word_to_check) {
         if (dictionary_set.count(word_to_check)) {
                 std::cout << "'" << word_to_check << "' is valid.\n";
+                return true;
         } else {
                 std::cout << "'" << word_to_check << "' is incorrect.\n";
+                return false;
         }
 }
 
@@ -553,12 +559,12 @@ int main() {
                                 window.close();
                         }
                         if (const auto* textEvent = event->getIf<sf::Event::TextEntered>()) {
-                                for (auto& box : slBox) {
-                                        if (box.isSelected()) {
-                                                box.input(textEvent->unicode, window, blockSound);
-                                        }
+                                if (slBox[amountOfSl].isSelected() && !buttons[0].isReady()) {
+                                        slBox[amountOfSl].input(textEvent->unicode, window, blockSound);
                                 }
-
+                                if (slBox[amountOfSl + 1].isSelected() && !buttons[1].isReady()) {
+                                        slBox[amountOfSl + 1].input(textEvent->unicode, window, blockSound);
+                                }
                         }
                 }
 
@@ -568,7 +574,6 @@ int main() {
 
                 const int POGADJANJE{1};
         // GAMESTATE ETC -------------------------------------------------------------------------------------------------
-
                 if (::state == POGADJANJE && (!buttons[0].isReady() || !buttons[1].isReady()))
                 {
 
@@ -579,8 +584,8 @@ int main() {
                 else if (::state == POGADJANJE && buttons[0].isReady() && buttons[1].isReady()) {
                         ::p1 = check_word(dictionary_set ,slBox[amountOfSl + 1].getText());
                         ::p2 = check_word(dictionary_set ,slBox[amountOfSl + 2].getText());
-                        string rec = slBox[amountOfSl + 1].getText();
-                        string rec2 = slBox[amountOfSl + 2].getText();
+                        string rec = slBox[amountOfSl].getText();
+                        string rec2 = slBox[amountOfSl + 1].getText();
                         if (::p1 && ::p2) {
                                 if (rec.length() > rec2.length()) {
                                         ::result = P1_WIN;
@@ -605,15 +610,28 @@ int main() {
                 }
 
                 else if (::state == POGADJANJE_GOTOVO) {
+                        sf::Text resultText(font);
+                        resultText.setCharacterSize(32);
+                        resultText.setFillColor(sf::Color::White);
                         if (::result == EQUAL) {
-                                cout << "equal";
+                                resultText.setString("Nereseno!");
                         }
                         else if (::result == P1_WIN) {
-                                cout << "p1_win";
+                                resultText.setString("Igrac 1 pobijedio!");
                         }
                         else if (::result == P2_WIN) {
-                                cout << "p2_win";
+                                resultText.setString("Igrac 2 pobijedio!");
                         }
+
+                        // Center it on screen
+                        sf::FloatRect bounds = resultText.getLocalBounds();
+                        resultText.setPosition({
+                            320.f - bounds.size.x / 2.f,
+                            200.f - bounds.size.y / 2.f
+                        });
+
+                        window.draw(resultText);
+
                 }
 
 
